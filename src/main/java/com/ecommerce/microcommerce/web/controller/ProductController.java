@@ -2,6 +2,7 @@ package com.ecommerce.microcommerce.web.controller;
 
 import com.ecommerce.microcommerce.dao.ProductDao;
 import com.ecommerce.microcommerce.model.Product;
+import com.ecommerce.microcommerce.web.exceptions.ProduitGratuitException;
 import com.ecommerce.microcommerce.web.exceptions.ProduitIntrouvableException;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
@@ -9,6 +10,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.web.bind.annotation.*;
@@ -46,6 +48,13 @@ public class ProductController {
 
         return produitsFiltres;
     }
+    @RequestMapping(value = "/Produits/tri", method = RequestMethod.GET)
+
+    public List<Product> trierProduitsParOrdreAlphabetique(){
+
+        List<Product> produits = this.findAll();
+        return produits;
+    }
 
 
     //Récupérer un produit par son Id
@@ -68,6 +77,7 @@ public class ProductController {
     @PostMapping(value = "/Produits")
 
     public ResponseEntity<Void> ajouterProduit(@Valid @RequestBody Product product) {
+        if(product.getPrix()==0) throw new ProduitGratuitException("Le produit avec l'id " + product.getId() + " doit avoir un prix différent de 0.");
 
         Product productAdded =  productDao.save(product);
 
@@ -103,6 +113,19 @@ public class ProductController {
         return productDao.chercherUnProduitCher(400);
     }
 
+    //Pour le calcule de Marge du produit
+    @GetMapping(value = "/AdminProduits/{id}")
+    public int calculerMargeProduit(@PathVariable int id) {
+        Product product = productDao.findById(id);
+        return (Math.abs(product.getPrixAchat() - product.getPrix()));
+    }
 
 
+    public List<Product> findAll() {
+        return productDao.findAll(sortByIdAsc());
+    }
+
+    private Sort sortByIdAsc() {
+        return new Sort(Sort.Direction.ASC, "nom");
+    }
 }
